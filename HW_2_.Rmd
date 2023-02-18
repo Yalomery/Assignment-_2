@@ -1,0 +1,102 @@
+---
+title: "HW_2"
+output: word_document
+date: "2023-02-18"
+---
+
+```{r load-packages, include=FALSE}
+
+library(caret)
+
+library(class)
+
+library(gmodels)
+
+library(dplyr)
+```
+
+
+```{r}
+# Read the data from a CSV file
+UniversalBank <- read.csv("/Users/binsalim/Downloads/UniversalBank.csv")
+UniBank <- UniversalBank
+
+# Summary of Education variable
+summary(UniBank$Education)
+
+# Create dummy variables for Education variable
+UniBank <- mutate(UniBank, Education_1 = ifelse(Education == 1, 1, 0))
+UniBank <- mutate(UniBank, Education_2 = ifelse(Education == 2, 1, 0))
+UniBank <- mutate(UniBank, Education_3 = ifelse(Education == 3, 1, 0))
+
+```
+
+
+```{r}
+# Convert Personal Loan variable to character type
+UniBank$Personal.Loan <- as.character(UniBank$Personal.Loan)
+
+# Select the relevant columns and remove missing values
+df <- UniBank[, -c(1, 4, 6)]
+df <- na.omit(df)
+```
+
+```{r}
+# Normalize the data using centering and scaling
+norm_model <- preProcess(df, method = c("center", "scale"))
+Default_normalized <- predict(norm_model, df)
+
+# Split the data into training and testing sets
+Index_Train <- createDataPartition(Default_normalized$Personal.Loan, p = 0.6, list = FALSE)
+Train <- Default_normalized[Index_Train, ]
+Test <- Default_normalized[-Index_Train, ]
+
+# Separate predictors and labels in the training and testing sets
+Train_Predictors <- Train[, -7]
+Test_Predictors <- Test[, -7]
+Train_labels <- Train[, 7]
+Test_labels <- Test[, 7]
+
+```
+
+
+```{r}
+# Classify the data using k-NN with k=1
+Predicted_Test_labels <- knn(Train_Predictors,
+                             Test_Predictors,
+                             cl = Train_labels,
+                             k = 1)
+
+# Print the first few predicted labels
+head(Predicted_Test_labels)
+
+# Create a confusion matrix to evaluate the model's performance
+CrossTable(x = Test_labels, y = Predicted_Test_labels, prop.chisq = FALSE)
+
+
+
+```
+
+
+```{r}
+# Define the new customer data frame
+record <- data.frame(Age = 40, Experience = 10, Income = 84, Family = 2, CCAvg = 2, Education_1 = 0, Education_2 = 1, Education_3 = 0, Mortgage = 0, Securities.Account = 0, CD.Account = 0, Online = 1, Credit.Card = 1)
+
+# Remove the "Personal Loan" column from the record
+#record <- record[, -7]
+record
+
+# Classify the new customer using the trained model
+Predicted_Test_labels <- knn(Train_Predictors,
+                             record,
+                             cl = Train_labels,
+                             k = 1)
+# The customer will not be given a loan 
+Predicted_Test_labels
+
+
+```
+
+
+
+
